@@ -230,15 +230,7 @@ Univariate Analysis
 
 
 def histogram_boxplot(data, feature, figsize=(12, 7), kde=False, bins=None):
-    """
-    Boxplot and histogram combined
-
-    data: dataframe
-    feature: dataframe column
-    figsize: size of figure (default (12,7))
-    kde: whether to the show density curve (default False)
-    bins: number of bins for histogram (default None)
-    """
+  
     f2, (ax_box2, ax_hist2) = plt.subplots(
         nrows=2,  # Number of rows of the subplot grid= 2
         sharex=True,  # x-axis will be shared among all subplots
@@ -262,33 +254,13 @@ def histogram_boxplot(data, feature, figsize=(12, 7), kde=False, bins=None):
 
 histogram_boxplot(data, "tenure")
 
-"""The boxplot shows no extreme outliers
-
-The tenure distribution is right-skewed, with a large concentration of customers having low tenure .
-
-The median tenure is lower than the mean, indicating that many customers leave early, while a smaller group stays for a long time up to 70 months.
-
-"""
 
 histogram_boxplot(data, "MonthlyCharges")
 
-"""Boxplot shows there is no outlire
 
-Monthly charges show a bimodal distribution, with one cluster around lower charges 10-30 and another around higher charges 100-120.
-
-The median lies slightly above the lower cluster, while the mean is higher due to customers paying premium prices.
-
-
-"""
 
 histogram_boxplot(data, "TotalCharges")
 
-"""TotalCharges is heavily right-skewed, with most customers having low cumulative charges.
-
-A long tail exists for customers with high TotalCharges, representing long tenure and high value customers.
-
-The median is significantly lower than the mean, reflecting that most customers do not stay long enough to accumulate high total spending.
-"""
 
 # function to create labeled barplots
 
@@ -344,35 +316,28 @@ def labeled_barplot(data, feature, perc=False, n=None):
 
 labeled_barplot(data, "gender", perc=True);
 
-"""Male ratio is slightly high as compair to female"""
 
 labeled_barplot(data, "PaymentMethod", perc=True);
 
-"""around 34 % people choose elsectronic check for pay bills"""
 
 labeled_barplot(data, "PaperlessBilling", perc=True);
 
-"""There is no huge diffrence between paperlessbilling"""
 
 labeled_barplot(data, "Contract", perc=True);
 
-"""Arround 54% of people take month to month contract"""
 
 labeled_barplot(data, "OnlineBackup", perc=True);
 
-"""Arround 50 '5 of people not take nay backup and 23 % of people not take any internet service"""
 
 labeled_barplot(data, "Dependents", perc=True);
 
-"""73% people and no depends"""
+
 
 labeled_barplot(data, "PhoneService", perc=True);
 
-"""89% of people take phoneservice"""
 
 labeled_barplot(data, "InternetService", perc=True);
 
-"""most of the internet service is used by fiberoptic"""
 
 labeled_barplot(data, "StreamingMovies", perc=True);
 
@@ -380,10 +345,7 @@ labeled_barplot(data, "StreamingTV", perc=True);
 
 labeled_barplot(data, "TechSupport", perc=True);
 
-"""most of the people no take tech support ,no tv streming and no streaming movies
 
-#Bivariate Analysis
-"""
 
 cols_list = data.select_dtypes(include=np.number).columns.tolist()
 
@@ -393,11 +355,3 @@ sns.heatmap(
 )
 plt.show()
 
-"""**Observations**
-
-Tenure and TotalChare are highly correlated
-
-MonthlyChare and Total charege are also correlated with each other.
-
-There is not much correlation among the rest of the variables.
-"""
