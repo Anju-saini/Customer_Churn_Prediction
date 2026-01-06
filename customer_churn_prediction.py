@@ -357,3 +357,566 @@ sns.heatmap(
 )
 plt.show()
 
+
+
+"""**Observations**
+
+Tenure and TotalChare are highly correlated
+
+MonthlyChare and Total charege are also correlated with each other.
+
+There is not much correlation among the rest of the variables.
+
+#Multivariate analysis
+"""
+
+plt.figure(figsize=(10, 6))
+sns.countplot(data=data, x='Contract', hue='Churn', palette='tab10')
+plt.title('Churn by Contract Type')
+plt.xlabel('Contract Type')
+plt.ylabel('Count')
+plt.legend(title='Churn')
+plt.show()
+
+"""A higher chance of customers with month-to-month contracts churn compared to those with one-year or two-year contracts."""
+
+plt.figure(figsize=(10, 6))
+sns.countplot(data=data, x='InternetService', hue='Churn', palette='pastel')
+plt.title('Churn by Internet Service Type')
+plt.xlabel('Internet Service Type')
+plt.ylabel('Count')
+plt.legend(title='Churn')
+plt.show()
+
+"""Customers use Fiber optic internet service is higher churn rate than those with DSL or no internet service."""
+
+plt.figure(figsize=(12, 7))
+sns.countplot(data=data, x='PaymentMethod', hue='Churn', palette='dark')
+plt.title('Churn by Payment Method')
+plt.xlabel('Payment Method')
+plt.ylabel('Count')
+plt.legend(title='Churn')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+"""The Electronic check payment method is used by customer with a higher churn rate compared to other payment methods such as Mail check, Bank transfer, or Credit card.
+
+#Checking Outlires
+"""
+
+# Outlier detection using boxplot
+num_cols = data.select_dtypes(include=np.number).columns.tolist()
+
+plt.figure(figsize=(15, 12))
+
+for i, variable in enumerate(num_cols):
+    plt.subplot(4, 4, i + 1)
+    plt.boxplot(data[variable], whis=1.5)
+    plt.tight_layout()
+    plt.title(variable)
+
+plt.show()
+
+"""The boxplots for 'SeniorCitizen', 'tenure', 'MonthlyCharges', and 'TotalCharges' indicate that there are no significant outliers in these numerical features.
+
+#Feature Engineering
+"""
+
+# Tenure group feature
+data['TenureGroup'] = pd.cut(
+    data['tenure'],
+    bins=[-1, 12, 24, 48, 72],
+    labels=['0-1 year', '1-2 years', '2-4 years', '4-6 years']
+)
+
+# Service count feature
+services = [
+    'PhoneService', 'OnlineSecurity', 'OnlineBackup',
+    'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies'
+]
+
+data['ServiceCount'] = data[services].apply(
+    lambda x: sum(x == 'Yes'), axis=1
+)
+
+"""Creating two new variable name tenure group and service count to compaire diffrent tenure in a group and  get calculate how many service a user take ."""
+
+data.head()
+
+"""#Class Imbalance Handling"""
+
+data['Churn'].value_counts(normalize=True) * 100
+
+"""#Feature Scaling"""
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+num_features = ['tenure', 'MonthlyCharges', 'TotalCharges', 'ServiceCount']
+
+#data[num_features] = scaler.fit_transform(data[num_features])
+
+scaler.fit(X_train[num_cols])
+X_train[num_cols] = scaler.transform(X_train[num_cols])
+X_val[num_cols]   = scaler.transform(X_val[num_cols])
+X_test[num_cols]  = scaler.transform(X_test[num_cols])
+
+"""#Data Preparation for Modelling
+
+Separating features and the target column
+"""
+
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+
+X = data.drop('Churn', axis=1)
+y = data['Churn']
+
+"""**Splitting the data into train and test sets in 70:30 ratio**"""
+
+X = pd.get_dummies(X, dtype=int, columns=X.select_dtypes(include=['object', 'category']).columns.tolist(), drop_first=True)
+X.head()
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=42, stratify=y_train)
+
+print(X_train.shape, X_val.shape, X_test.shape)
+print(y_train.shape, y_val.shape, y_test.shape)
+
+print("Number of rows in train data =", X_train.shape[0])
+print("Number of rows in validation data =", X_val.shape[0])
+print("Number of rows in test data =", X_test.shape[0])
+
+"""** Scaling AFTER split**"""
+
+from sklearn.impute import SimpleImputer
+
+num_cols = list(X_train.select_dtypes(include=['int', 'float']).columns)
+
+
+# Impute numerical columns
+num_imputer = SimpleImputer(strategy='mean')
+X_train[num_cols] = num_imputer.fit_transform(X_train[num_cols])
+X_val[num_cols] = num_imputer.transform(X_val[num_cols])
+X_test[num_cols] = num_imputer.transform(X_test[num_cols])
+
+scaler = StandardScaler()
+
+num_cols = ['tenure', 'MonthlyCharges', 'TotalCharges', 'ServiceCount']
+
+X_train[num_cols] = scaler.fit_transform(X_train[num_cols])
+X_test[num_cols] = scaler.transform(X_test[num_cols])
+
+data.isnull().sum()
+
+"""There is no any missing value in the dataset
+
+All missing values have been treated.
+
+Let's inverse map the encoded values.
+
+Train Dataset
+"""
+
+cols = X_train.select_dtypes(include=["object", "category"])
+for i in cols.columns:
+    print(X_train[i].value_counts())
+    print("*" * 30)
+
+"""Validation Dataset"""
+
+cols = X_val.select_dtypes(include=["object", "category"])
+for i in cols.columns:
+    print(X_val[i].value_counts())
+    print("*" * 30)
+
+"""Test Dataset"""
+
+cols = X_test.select_dtypes(include=["object", "category"])
+for i in cols.columns:
+    print(X_test[i].value_counts())
+    print("*" * 30)
+
+"""#Model Building"""
+
+# defining a function to compute different metrics to check performance of a classification model built using sklearn
+def model_performance_classification_sklearn(model, predictors, target):
+    """
+    Function to compute different metrics to check classification model performance
+
+    model: classifier
+    predictors: independent variables
+    target: dependent variable
+    """
+
+    # predicting using the independent variables
+    pred = model.predict(predictors)
+
+    acc = accuracy_score(target, pred)  # to compute Accuracy
+    recall = recall_score(target, pred)  # to compute Recall
+    precision = precision_score(target, pred)  # to compute Precision
+    f1 = f1_score(target, pred)  # to compute F1-score
+
+    # creating a dataframe of metrics
+    df_perf = pd.DataFrame(
+        {"Accuracy": acc, "Recall": recall, "Precision": precision, "F1": f1,},
+        index=[0],
+    )
+
+    return df_perf
+
+def confusion_matrix_sklearn(model, predictors, target):
+    """
+    To plot the confusion_matrix with percentages
+
+    model: classifier
+    predictors: independent variables
+    target: dependent variable
+    """
+    y_pred = model.predict(predictors)
+    cm = confusion_matrix(target, y_pred)
+    labels = np.asarray(
+        [
+            ["{0:0.0f}".format(item) + "\n{0:.2%}".format(item / cm.flatten().sum())]
+            for item in cm.flatten()
+        ]
+    ).reshape(2, 2)
+
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(cm, annot=labels, fmt="")
+    plt.ylabel("True label")
+    plt.xlabel("Predicted label")
+
+"""#Initial Model Building
+
+Model Building - Original Data
+"""
+
+models = []  # Empty list to store all the models
+
+# Appending models into the list
+models.append(("Bagging", BaggingClassifier(estimator=DecisionTreeClassifier(random_state=1, class_weight='balanced'), random_state=1)))
+models.append(("Random forest", RandomForestClassifier(random_state=1, class_weight='balanced')))
+models.append(("GBM", GradientBoostingClassifier(random_state=1)))
+models.append(("Adaboost", AdaBoostClassifier(random_state=1)))
+models.append(("dtree", DecisionTreeClassifier(random_state=1, class_weight='balanced')))
+
+print("\nTraining Performance:\n")
+for name, model in models:
+    model.fit(X_train, y_train)
+    scores = recall_score(y_train, model.predict(X_train))
+    print("{}: {}".format(name, scores))
+
+print("\nValidation Performance:\n")
+for name, model in models:
+    model.fit(X_train, y_train)
+    scores_val = recall_score(y_val, model.predict(X_val))
+    print("{}: {}".format(name, scores_val))
+
+print("\nTraining and Validation Performance Difference:\n")
+
+for name, model in models:
+    model.fit(X_train, y_train)
+    scores_train = recall_score(y_train, model.predict(X_train))
+    scores_val = recall_score(y_val, model.predict(X_val))
+    difference1 = scores_train - scores_val
+    print("{}: Training Score: {:.4f}, Validation Score: {:.4f}, Difference: {:.4f}".format(name, scores_train, scores_val, difference1))
+
+"""#Model Building - Oversampled Data"""
+
+print("Before Oversampling, counts of label 'Yes': {}".format(sum(y_train == 1)))
+print("Before Oversampling, counts of label 'No': {} \n".format(sum(y_train == 0)))
+
+sm = SMOTE(
+    sampling_strategy=1, k_neighbors=5, random_state=1
+)  # Synthetic Minority Over Sampling Technique
+X_train_over, y_train_over = sm.fit_resample(X_train, y_train)
+
+
+print("After Oversampling, counts of label 'Yes': {}".format(sum(y_train_over == 1)))
+print("After Oversampling, counts of label 'No': {} \n".format(sum(y_train_over == 0)))
+
+
+print("After Oversampling, the shape of train_X: {}".format(X_train_over.shape))
+print("After Oversampling, the shape of train_y: {} \n".format(y_train_over.shape))
+
+models = []
+
+# Appending models into the list
+models.append(("Bagging", BaggingClassifier(estimator=DecisionTreeClassifier(random_state=1, class_weight='balanced'), random_state=1)))
+models.append(("Random forest", RandomForestClassifier(random_state=1, class_weight='balanced')))
+models.append(("GBM", GradientBoostingClassifier(random_state=1)))
+models.append(("Adaboost", AdaBoostClassifier(random_state=1)))
+models.append(("dtree", DecisionTreeClassifier(random_state=1, class_weight='balanced')))
+
+print("\n" "Training Performance:" "\n")
+for name, model in models:
+    model.fit(X_train_over, y_train_over)
+    scores = recall_score(y_train_over, model.predict(X_train_over))
+    print("{}: {}".format(name, scores))
+
+print("\n" "Validation Performance:" "\n")
+
+for name, model in models:
+    model.fit(X_train_over, y_train_over)
+    scores = recall_score(y_val, model.predict(X_val))
+    print("{}: {}".format(name, scores))
+
+print("\nTraining and Validation Performance Difference:\n")
+
+for name, model in models:
+    model.fit(X_train_over, y_train_over)
+    scores_train = recall_score(y_train_over, model.predict(X_train_over))
+    scores_val = recall_score(y_val, model.predict(X_val))
+    difference2 = scores_train - scores_val
+    print("{}: Training Score: {:.4f}, Validation Score: {:.4f}, Difference: {:.4f}".format(name, scores_train, scores_val, difference2))
+
+"""#Model Building - Undersampled Data"""
+
+rus = RandomUnderSampler(random_state=1)
+X_train_un, y_train_un = rus.fit_resample(X_train, y_train)
+
+print("Before Under Sampling, counts of label 'Yes': {}".format(sum(y_train == 1)))
+print("Before Under Sampling, counts of label 'No': {} \n".format(sum(y_train == 0)))
+
+print("After Under Sampling, counts of label 'Yes': {}".format(sum(y_train_un == 1)))
+print("After Under Sampling, counts of label 'No': {} \n".format(sum(y_train_un == 0)))
+
+print("After Under Sampling, the shape of train_X: {}".format(X_train_un.shape))
+print("After Under Sampling, the shape of train_y: {} \n".format(y_train_un.shape))
+
+models = []  # Empty list to store all the models
+
+# Appending models into the list
+models.append(("Bagging", BaggingClassifier(estimator=DecisionTreeClassifier(random_state=1, class_weight='balanced'), random_state=1)))
+models.append(("Random forest", RandomForestClassifier(random_state=1, class_weight='balanced')))
+models.append(("GBM", GradientBoostingClassifier(random_state=1)))
+models.append(("Adaboost", AdaBoostClassifier(random_state=1)))
+models.append(("dtree", DecisionTreeClassifier(random_state=1, class_weight='balanced')))
+
+
+print("\n" "Training Performance:" "\n")
+for name, model in models:
+    model.fit(X_train_un, y_train_un)
+    scores = recall_score(y_train_un, model.predict(X_train_un))
+    print("{}: {}".format(name, scores))
+
+print("\n" "Validation Performance:" "\n")
+
+for name, model in models:
+    model.fit(X_train_un, y_train_un)
+    scores = recall_score(y_val, model.predict(X_val))
+    print("{}: {}".format(name, scores))
+
+print("\nTraining and Validation Performance Difference:\n")
+
+for name, model in models:
+    model.fit(X_train_un, y_train_un)
+    scores_train = recall_score(y_train_un, model.predict(X_train_un))
+    scores_val = recall_score(y_val, model.predict(X_val))
+    difference3 = scores_train - scores_val
+    print("{}: Training Score: {:.4f}, Validation Score: {:.4f}, Difference: {:.4f}".format(name, scores_train, scores_val, difference3))
+
+"""#Hyperparameter Tuning
+
+**Tuning AdaBoostClassifier model with Undersampled data**
+"""
+
+# Commented out IPython magic to ensure Python compatibility.
+# %%time
+# import sklearn.metrics
+# 
+# # defining model
+# Model = AdaBoostClassifier(random_state=1)
+# 
+# # Parameter grid to pass in RandomSearchCV
+# param_grid = {
+#     "n_estimators": np.arange(10, 40, 10),
+#     "learning_rate": [0.1, 0.01, 0.2, 0.05, 1],
+#     "estimator": [ # Changed from base_estimator to estimator
+#         DecisionTreeClassifier(max_depth=1, random_state=1),
+#         DecisionTreeClassifier(max_depth=2, random_state=1),
+#         DecisionTreeClassifier(max_depth=3, random_state=1),
+#     ],
+# }
+# 
+# # Type of scoring used to compare parameter combinations
+# scorer = sklearn.metrics.make_scorer(sklearn.metrics.recall_score)
+# 
+# #Calling RandomizedSearchCV
+# randomized_cv = RandomizedSearchCV(estimator=Model, param_distributions=param_grid, n_jobs = -1, n_iter=50, scoring=scorer, cv=5, random_state=1)
+# 
+# #Fitting parameters in RandomizedSearchCV
+# randomized_cv.fit(X_train_un, y_train_un)
+# 
+# print("Best parameters are {} with CV score={}:" .format(randomized_cv.best_params_,randomized_cv.best_score_))
+
+tuned_adb = AdaBoostClassifier(
+    random_state=1,
+    n_estimators=20,
+    learning_rate=0.1,
+    estimator=DecisionTreeClassifier(max_depth=2, random_state=1),
+)
+tuned_adb.fit(X_train_un, y_train_un)
+
+# Checking model's performance on training set
+adb_train = model_performance_classification_sklearn(tuned_adb, X_train_un, y_train_un)
+adb_train
+
+# Example usage for training set
+confusion_matrix_sklearn(tuned_adb, X_train_un, y_train_un)
+
+adb_val = model_performance_classification_sklearn(tuned_adb, X_val, y_val)
+adb_val
+
+# Example usage for validation/test set
+confusion_matrix_sklearn(tuned_adb, X_val, y_val)
+
+"""#Tuning Gradient Boosting model with Undersampled Data"""
+
+# Commented out IPython magic to ensure Python compatibility.
+# %%time
+# import sklearn.metrics
+# 
+# #Creating pipeline
+# Model = GradientBoostingClassifier(random_state=1)
+# 
+# #Parameter grid to pass in RandomSearchCV
+# param_grid = {
+#     "init": [AdaBoostClassifier(random_state=1),DecisionTreeClassifier(random_state=1)],
+#     "n_estimators": np.arange(125,175,25),
+#     "learning_rate": [0.01, 0.2, 0.05, 1],
+#     "subsample":[0.8,0.9,1],
+#     "max_features":[0.5,0.7,1],
+# }
+# 
+# # Type of scoring used to compare parameter combinations
+# scorer = sklearn.metrics.make_scorer(sklearn.metrics.recall_score)
+# 
+# #Calling RandomizedSearchCV
+# randomized_cv = RandomizedSearchCV(estimator=Model, param_distributions=param_grid, n_iter=50, scoring=scorer, cv=5, random_state=1, n_jobs = -1)
+# 
+# #Fitting parameters in RandomizedSearchCV
+# randomized_cv.fit(X_train_un,y_train_un)
+# 
+# print("Best parameters are {} with CV score={}:" .format(randomized_cv.best_params_,randomized_cv.best_score_))
+
+tuned_gbm1 = GradientBoostingClassifier(
+    random_state=1,
+    subsample=0.7,
+    n_estimators=125,
+    max_features=1,
+    learning_rate=1,
+    init=AdaBoostClassifier(random_state=1),
+)
+tuned_gbm1.fit(X_train_un, y_train_un)
+
+# Checking model's performance on training set
+gbm1_train = model_performance_classification_sklearn(tuned_gbm1, X_train_un, y_train_un)
+
+# Checking model's performance on validation set
+gbm1_val = model_performance_classification_sklearn(tuned_gbm1, X_val, y_val)
+
+# Checking model's performance on training set
+gbm2_train = model_performance_classification_sklearn(tuned_gbm1, X_train_over, y_train_over)
+gbm2_train
+
+confusion_matrix_sklearn(tuned_gbm1, X_train_over, y_train_over)
+
+# Checking model's performance on validation set
+gbm2_val = model_performance_classification_sklearn(tuned_gbm1, X_val, y_val)
+gbm2_val
+
+confusion_matrix_sklearn(tuned_gbm1, X_val, y_val)
+
+"""#Tuning Gradient Boosting model with Oversampled data"""
+
+# Commented out IPython magic to ensure Python compatibility.
+# %%time
+# 
+# #defining model
+# Model = GradientBoostingClassifier(random_state=1)
+# 
+# #Parameter grid to pass in RandomSearchCV
+# param_grid = {
+#     "init": [AdaBoostClassifier(random_state=1),DecisionTreeClassifier(random_state=1)],
+#     "n_estimators": np.arange(75,150,25),
+#     "learning_rate": [0.1, 0.01, 0.2, 0.05, 1],
+#     "subsample":[0.5,0.7,1],
+#     "max_features":[0.5,0.7,1],
+# }
+# 
+# # Type of scoring used to compare parameter combinations
+# scorer = metrics.make_scorer(metrics.recall_score)
+# 
+# #Calling RandomizedSearchCV
+# randomized_cv = RandomizedSearchCV(estimator=Model, param_distributions=param_grid, n_iter=50, scoring=scorer, cv=5, random_state=1, n_jobs = -1)
+# 
+# #Fitting parameters in RandomizedSearchCV
+# randomized_cv.fit(X_train_over, y_train_over)
+# 
+# print("Best parameters are {} with CV score={}:" .format(randomized_cv.best_params_,randomized_cv.best_score_))
+#
+
+tuned_gbm2 = GradientBoostingClassifier(
+    random_state=1,
+    subsample=0.7,
+    n_estimators=125,
+    max_features=1,
+    learning_rate=1,
+    init=AdaBoostClassifier(random_state=1),
+)
+tuned_gbm2.fit(X_train_over, y_train_over)
+
+# Checking model's performance on training set
+gbm2_train = model_performance_classification_sklearn(tuned_gbm2, X_train_over, y_train_over)
+gbm2_train
+
+confusion_matrix_sklearn(tuned_gbm2, X_train_over, y_train_over)
+
+# Checking model's performance on validation set
+gbm2_val = model_performance_classification_sklearn(tuned_gbm2, X_val, y_val)
+gbm2_val
+
+confusion_matrix_sklearn(tuned_gbm2, X_val, y_val)
+
+"""#Model Comparison and Final Model Selection"""
+
+# training performance comparison
+
+models_train_comp_df = pd.concat(
+    [
+        gbm1_train.T,
+        gbm2_train.T,
+        adb_train.T,
+    ],
+    axis=1,
+)
+models_train_comp_df.columns = [
+    "Gradient boosting trained with Undersampled data",
+    "Gradient boosting trained with Oversampled data",
+    "AdaBoost trained with Undersampled data",
+]
+print("Training performance comparison:")
+models_train_comp_df
+
+# Validation performance comparison
+
+models_train_comp_df = pd.concat(
+    [ gbm1_val.T, gbm2_val.T, adb_val.T], axis=1,
+)
+models_train_comp_df.columns = [
+    "Gradient boosting trained with Undersampled data",
+    "Gradient boosting trained with Oversampled data",
+    "AdaBoost trained with Undersampled data",
+]
+print("Validation performance comparison:")
+models_train_comp_df
+
+# Let's check the performance on test set
+ada_test = model_performance_classification_sklearn(tuned_adb, X_test, y_test)
+ada_test
+
+confusion_matrix_sklearn(tuned_adb, X_test, y_test)
+
