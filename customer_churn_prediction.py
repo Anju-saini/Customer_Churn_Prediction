@@ -378,7 +378,6 @@ plt.ylabel('Count')
 plt.legend(title='Churn')
 plt.show()
 
-"""A higher chance of customers with month-to-month contracts churn compared to those with one-year or two-year contracts."""
 
 plt.figure(figsize=(10, 6))
 sns.countplot(data=data, x='InternetService', hue='Churn', palette='pastel')
@@ -388,7 +387,6 @@ plt.ylabel('Count')
 plt.legend(title='Churn')
 plt.show()
 
-"""Customers use Fiber optic internet service is higher churn rate than those with DSL or no internet service."""
 
 plt.figure(figsize=(12, 7))
 sns.countplot(data=data, x='PaymentMethod', hue='Churn', palette='dark')
@@ -400,10 +398,6 @@ plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
 
-"""The Electronic check payment method is used by customer with a higher churn rate compared to other payment methods such as Mail check, Bank transfer, or Credit card.
-
-#Checking Outlires
-"""
 
 # Outlier detection using boxplot
 num_cols = data.select_dtypes(include=np.number).columns.tolist()
