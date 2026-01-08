@@ -44,5 +44,3 @@ PaymentMethod: Details the payment method used by the customer (e.g., electronic
 MonthlyCharges: The monthly amount in $ USD charged to the customer. Higher charges might increase the likelihood of churn if customers perceive the cost as too high for the value provided.
 TotalCharges: The cumulative amount in $ USD charged over the customer’s tenure. This helps in understanding the long-term value of each customer and can be a predictor of churn.
 Churn: The target variable indicating whether the customer has left (typically denoted as “Yes” or “No”). This is the primary outcome you aim to predict with your machine learning model.
-
-
